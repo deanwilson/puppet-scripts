@@ -1,21 +1,15 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Data::Dumper;
 use YAML::Syck;
 use POSIX qw(strftime);
 use Getopt::Long;
-
-# get all the warnings for a given host for today.
 
 GetOptions(
   "r|reportsdir=s" => \( my $reportsdir = '/var/lib/puppet/reports' ),
   "h|host=s"       => \( my $host = '*' ),
   "d|date=s"       => \( my $date = strftime('%Y%m%d', localtime) ),
-  "debug"          => \( my $debug = 0  ),
 );
-
-die "Please supply a host\n" unless $host;
 
 for my $report ( glob("$reportsdir/$host/$date*.yaml") ) {
   my @messages;
@@ -24,8 +18,8 @@ for my $report ( glob("$reportsdir/$host/$date*.yaml") ) {
   for my $log (@{ $reportdump->{logs} }) {
     next if $log->{level} =~ /notice/;
     $log->{level} =~ s/^://;
-    my $message = $log->{level} . ": " . $log->{message} . " " . $log->{source};
 
+    my $message = $log->{level} . ": " . $log->{message} . " " . $log->{source};
     print "$report: $message\n";
   }
 
