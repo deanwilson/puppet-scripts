@@ -1,0 +1,33 @@
+#!/usr/bin/ruby
+require 'puppet'
+
+# simple example of using a puppet type and providers
+# to hide implementation details.
+# This script isn't that robust.
+
+pkg_action = ARGV.shift
+pkg_name   = ARGV.shift
+
+# ppp = instance of the puppet package provider
+ppp = Puppet::Type.type(:package).new(:name => pkg_name).provider
+
+case pkg_action
+  when "remove", "delete", "uninstall"
+    ppp.purge
+  when "install"
+    ppp.install
+  when "update", "upgrade"
+    ppp.update
+  when "status"
+    if ppp.properties[:ensure] == :absent
+      puts "Failed to find #{pkg_name}"
+    else
+      puts pkg_name
+      ppp.properties.each_pair do |k,v|
+        puts " - #{k} => #{v}"
+      end
+    end
+  else
+    puts "Don't know how to '#{pkg_action}'"
+    exit 1
+  end
