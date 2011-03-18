@@ -1,0 +1,77 @@
+#!/usr/bin/ruby
+require 'puppet'
+require 'yaml'
+require 'facter'
+require 'pp'
+
+# TODO
+# tie it in to the files puppet has changed after package deploy.
+# make the rpm -qV work with absent packages
+# yank the md5sum out of puppet managed files and check against on disk.
+
+######## boiler plate
+
+localconfig = ARGV[0] || "#{Puppet[:clientyamldir]}/catalog/#{ Facter.fqdn }.yaml"
+
+unless File.exist?(localconfig)
+  puts("Can't find #{ Facter.fqdn }.yaml")
+  exit 1
+end
+
+lc = File.read(localconfig)
+
+begin
+  pup = Marshal.load(lc)
+rescue TypeError
+  pup = YAML.load(lc)
+rescue Exception => e
+  raise
+end
+
+# horrid - make recursion work properly instead
+@puppet_resources = []
+
+
+def extract_resource(resource, resource_type)
+  if resource.class == Puppet::Resource::Catalog
+    resource.edges.each do |b|
+      extract_resource b, resource_type
+    end
+  elsif resource.class == Puppet::Relationship and resource.target.class == Puppet::Resource and resource.target.title != nil and resource.target.file != nil
+    target = resource.target
+
+    if target.type == resource_type
+      @puppet_resources.push target.title
+    end
+  end
+end
+
+#### Actual work
+
+extract_resource(pup, "Package")
+@packages = @puppet_resources
+
+@puppet_resources = []
+extract_resource(pup, "File")
+@files = @puppet_resources
+
+changes = {}
+@packages.each do | package |
+  changed = {}
+
+  `rpm -qV #{package}`.each do | package_changes |
+     file, changed_attributes = package_changes.split.values_at( -1, 0)
+     changed[file] = changed_attributes
+  end
+
+  changes[package] = changed if changed.length > 0
+end
+
+changes.each_key do | package |
+  puts "Package #{package}"
+
+  changes[package].each_pair do | file, change |
+    puts " -- #{file} has #{change} changes"
+    puts "    --  managed by puppet so check" if @files.include? file
+  end
+end
