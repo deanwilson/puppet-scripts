@@ -1,0 +1,23 @@
+#!/bin/bash
+# tested on 0.25
+
+# example - puppet-ls /etc/mcollective
+
+target=${1-$(pwd)}
+
+appname=$(basename $0)
+
+catalog_filelist=$(mktemp -q /tmp/$appname.XXXXXX)
+ls_filelist=$(mktemp -q /tmp/$appname.XXXXXX)
+
+# get files puppet knows about - you might not need both of these.
+(
+  grep -h "title: /" /var/lib/puppet/client_yaml/catalog/*.yaml | awk '{ print $NF }' ;
+  grep '"File\[' /var/lib/puppet/state/state.yaml | sed -e 's/"File\[//' -e 's/\]"://' -e 's/ //g'
+) | sort > $catalog_filelist
+
+ls -1 $target/* | sort > $ls_filelist
+
+comm -12 $catalog_filelist $ls_filelist
+
+rm $catalog_filelist $ls_filelist
