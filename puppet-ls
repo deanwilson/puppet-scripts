@@ -4,6 +4,7 @@
 # example - puppet-ls /etc/mcollective
 
 target=${1-$(pwd)}
+target=${target%/}
 
 appname=$(basename $0)
 
