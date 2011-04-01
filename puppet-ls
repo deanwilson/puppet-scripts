@@ -1,6 +1,40 @@
 #!/bin/bash
 # tested on 0.25
 
+usage () {
+
+cat<<EOU
+$appname - Copyright (c) 2011 Dean Wilson - Licensed under the GPLv2
+
+$appname lists files that puppet isn't currently managing in the given
+directory. Without arguments $appname shows the files in the current
+working directory.
+
+The directory to check should always be the last argument.
+
+Usage: $APPNAME [-r] [-i] [directory]
+  -i
+    Invert the check and show files that puppet isn't managing.
+  -r
+    Show all puppet managed files in the given directory and subdirectories
+  -h
+    This help and usage information.
+
+Usage: $APPNAME
+
+Examples:
+  # show all puppet managed files in the /etc/mcollective directory.
+  $appname /etc/mcollective
+
+  # show all unmanaged files in /etc/nagios and any subdirectories
+  $appname -r -i /etc/nagios/
+
+EOU
+exit 0
+}
+
+#################################################################
+
 appname=$(basename "$0")
 comm="comm -12"
 
@@ -40,37 +74,3 @@ trap "rm -f $catalog_filelist $lister_filelist" 0 1 2 15
 $lister | sort > $lister_filelist
 
 $comm $catalog_filelist $lister_filelist
-
-#################################################################
-
-usage () {
-
-cat<<EOU
-$appname - Copyright (c) 2011 Dean Wilson - Licensed under the GPLv2
-
-$appname lists files that puppet isn't currently managing in the given
-directory. Without arguments $appname shows the files in the current
-working directory.
-
-The directory to check should always be the last argument.
-
-Usage: $APPNAME [-r] [-i] [directory]
-  -i
-    Invert the check and show files that puppet isn't managing.
-  -r
-    Show all puppet managed files in the given directory and subdirectories
-  -h
-    This help and usage information.
-
-Usage: $APPNAME
-
-Examples:
-  # show all puppet managed files in the /etc/mcollective directory.
-  $appname /etc/mcollective
-
-  # show all unmanaged files in /etc/nagios and any subdirectories
-  $appname -r -i /etc/nagios/
-
-EOU
-exit 0
-}
