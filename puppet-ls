@@ -12,7 +12,7 @@ working directory.
 
 The directory to check should always be the last argument.
 
-Usage: $APPNAME [-r] [-i] [directory]
+Usage: $appname [-r] [-i] [directory]
   -i
     Invert the check and show files that puppet isn't managing.
   -r
@@ -20,7 +20,7 @@ Usage: $APPNAME [-r] [-i] [directory]
   -h
     This help and usage information.
 
-Usage: $APPNAME
+Usage: $appname
 
 Examples:
   # show all puppet managed files in the /etc/mcollective directory.
