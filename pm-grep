@@ -1,0 +1,90 @@
+#!/usr/bin/ruby
+require 'puppet'
+require 'optparse'
+
+def help
+appname = 'pm-grep'
+  puts <<-EOH
+  #{appname} -t <type> -p <property> -v [value] <puppet_manifest.pp>
+
+  Examples
+    Show all file resources with a mode of 644
+    #{appname} -t file -p mode -v 644 files.pp
+
+    Show all host resources with an alias of any value
+    #{appname} -t host -p host_aliases hosts.pp
+
+    Check a number of pp files at once
+    find /etc/puppet/modules/ -name "*.pp" | xargs -n 1 #{appname}
+  EOH
+  exit 1
+end
+
+options = {}
+OptionParser.new do |opts|
+  opts.on("-p", "--property PROPERTY") { |property| options['property'] = property.to_s }
+  opts.on("-t", "--type TYPE")         { |type|     options['type']     = type.to_s     }
+  opts.on("-v", "--value VALUE")       { |value|    options['value']    = value.to_s    }
+  opts.on("-h", "--help")              { help }
+end.parse!
+
+help unless options['type']
+
+# doesn't work with global settings (Package { foo }), wrong stage for
+# that.
+
+# grab the file to check inside
+manifest = ARGV.shift
+help unless manifest
+Puppet[:manifest] = manifest
+
+begin
+  loaded = Puppet::Node::Environment.new(Puppet[:environment]).known_resource_types
+rescue => detail
+  Puppet.err detail
+  exit 1
+end 
+
+loaded.hostclasses.keys.each do |hc|
+  loaded.hostclasses[hc].code.each do |r|
+
+    resource = nil
+
+    if r.class.to_s == "Puppet::Parser::AST::Resource"
+      resource = r
+    elsif r.class.to_s == "Puppet::Parser::AST::ASTArray"
+      resource = r[0]
+    else
+      next
+    end
+
+    next unless resource.type == options['type']
+
+    # show all matching resources of 'type' if no other options are given
+    unless options['property'] || options['value']
+      puts "Matched #{options['type']} #{resource.title} in #{Puppet[:manifest]}"
+      next
+    end
+
+
+    params = {}
+    resource.parameters.each do | param |
+      property, value = param.to_a
+      params[property.to_s] = value.to_s.gsub(/"/, '')
+    end
+
+
+    next unless params.key? options['property']
+
+    # show all matching resources of 'type' with the given property of any
+    # value
+    unless options['value']
+      puts "Matched #{options['type']} #{resource.title} - has #{options['property']} in #{Puppet[:manifest]}"
+      next
+    end
+
+    next unless params[options['property']] == options['value']
+
+    puts "Matched #{options['type']} #{resource.title} in #{Puppet[:manifest]}"
+  end
+end
