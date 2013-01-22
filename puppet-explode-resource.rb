@@ -16,7 +16,7 @@ matched = resource.match( header_regex )
 resource.sub!( header_regex, '')
 
 attribs = Hash.new
-resource.scan(/(.+?)=>\s*(.+?),/).each { |k,v| attribs[k.strip] = v.strip }
+resource.scan(/(.+?)=>\s*(.+?),\s*/).each { |k,v| attribs[k.strip] = v.strip }
 
 longest_key = attribs.keys.max_by{|a| a.length}
 
