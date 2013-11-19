@@ -12,11 +12,14 @@ working directory.
 
 The directory to check should always be the last argument.
 
-Usage: $appname [-r] [-i] [directory]
+Usage: $appname [-r] [-R] [-i] [directory]
   -i
     Invert the check and show files that puppet isn't managing.
   -r
     Show all puppet managed files in the given directory and subdirectories
+  -R
+    Show all puppet managed files in the given directory and subdirectories,
+    following symbolic links
   -h
     This help and usage information.
 
@@ -38,11 +41,12 @@ exit 0
 appname=$(basename "$0")
 comm="comm -12"
 
-while getopts "irh" option
+while getopts "irRh" option
 do
 case $option in
     i ) comm="comm -13" ;;
     r ) recursive=1 ;;
+    R ) follow_links=1 ;;
     h ) usage ;;
     * ) usage
   esac
@@ -53,7 +57,9 @@ shift $(($OPTIND - 1))
 target="${1-$(pwd)}"
 target="${target%/}"
 
-if [ -n "$recursive" ];then
+if [ -n "$follow_links" ];then
+  lister="find -L $target"
+elif [ -n "$recursive" ];then
   lister="find $target"
 else
   lister="ls -d1 $target/*"
