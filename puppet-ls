@@ -74,7 +74,7 @@ trap "rm -f $catalog_filelist $lister_filelist" 0 1 2 15
 # get files puppet knows about - you might not need both of these.
 (
   grep -h "title: /" /var/lib/puppet/client_yaml/catalog/*.yaml | awk '{ print $NF }' ;
-  sed -e '/"File\[/!d' -e 's/"File\[//' -e 's/\]"://' -e 's/ //g' < /var/lib/puppet/state/state.yaml
+  sed -e '/File\[/!d' -e 's/File\[//' -e 's/\]://' -e 's/ //g' < /var/lib/puppet/state/state.yaml
 ) | sort > $catalog_filelist
 
 $lister | sort > $lister_filelist
