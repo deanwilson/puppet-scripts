@@ -65,11 +65,25 @@ else
   lister="ls -d1 $target/*"
 fi
 
-# Tests if puppet enterprise is used.
+# Tests which puppet, if any is in use
 if [ -d /var/opt/lib/pe-puppet ]; then
+  # Puppet Enterprise, pre 4.x
   vardir='/var/opt/lib/pe-puppet'
-else
+elif [ -d /var/lib/puppet ]; then
+  # Puppet pre 4.x
   vardir='/var/lib/puppet'
+elif [ -d /opt/puppetlabs/puppet/cache ]; then
+  # Puppet 4.x
+  vardir='/opt/puppetlabs/puppet/cache'
+else 
+  # Not running puppet?
+  echo "Cannot find a puppet agent state in the standard places."
+  exit 1
+fi
+
+if  [ ! -r ${vardir}/state/state.yaml ]; then
+  echo "Cannot read puppet agent state. Try sudo?"
+  exit 1
 fi
 
 catalog_filelist=$(mktemp -q "/tmp/$appname.XXXXXX")
@@ -81,7 +95,7 @@ trap "rm -f $catalog_filelist $lister_filelist" 0 1 2 15
 # get files puppet knows about - you might not need both of these.
 (
   grep -h "title: /" "$vardir/state/last_run_report.yaml" | awk '{ print $NF }' ;
-  sed -e '/File\[/!d' -e 's/File\[//' -e 's/\]://' -e 's/ //g' < /var/lib/puppet/state/state.yaml
+  sed -e '/File\[/!d' -e 's/File\[//' -e 's/\]://' -e 's/ //g' < ${vardir}/state/state.yaml
 ) | sort > "$catalog_filelist"
 
 $lister | sort > "$lister_filelist"
